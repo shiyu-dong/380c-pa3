@@ -1,4 +1,4 @@
-all: dec.cpp dec.h main.cpp
-	g++ -g dec.cpp main.cpp -o dec
+all: dce.cpp dce.h main.cpp
+	g++ -g dce.cpp main.cpp -o dce
 clean:
-	rm -rf dec
+	rm -rf dce
