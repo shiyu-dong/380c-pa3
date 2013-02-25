@@ -53,8 +53,15 @@ int main(int argc, char* argv[]) {
   }
 
   if(!strcmp(argv[2], "-backend=3addr")) {
+    string prefix = "    instr ";
+    cout<<prefix<<"1"<<": nop\n";
+
     for(int i=0; i<functions.size(); i++)
       functions[i]->print_instr();
+
+    int last_instr_num = functions.back()->bb.back()->instr.back()->num;
+    cout<<prefix<<++last_instr_num<<": nop\n";
+
     return 0;
   }
   else {
