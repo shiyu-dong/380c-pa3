@@ -1,4 +1,4 @@
-#include "dec.h"
+#include "dce.h"
 #include <iostream>
 #include <vector>
 #include <assert.h>

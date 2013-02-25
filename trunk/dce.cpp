@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <iostream>
 #include <fstream>
-#include "dec.h"
+#include "dce.h"
 
 set<int> br_target;
 bool main_next = 0;
@@ -104,7 +104,7 @@ bool newfunc_reached() {
   found1 = s.find("nop");
   if (found1 != string::npos) {
     getline(cin, s);
-    return 0;
+    return 1;
   }
 
   cin.clear();
@@ -219,20 +219,25 @@ bool BasicBlock::populate() {
   string last_instr = instr.back()->instr;
   int last_instr_num = instr.back()->num;
   int found, found1;
-  bool interrupt = 1;
   // call
   found = last_instr.find("call");
   if (found != string::npos) {
     branch_target = -1;
     children.insert(last_instr_num+1);
-    interrupt = 0;
+    // check if reach the end of a function
+    if (newfunc_reached())
+      return 0;
+    return 1;
   }
   // br
   found = last_instr.find("br");
   if (found != string::npos) {
     branch_target = get_2op(last_instr).second;
     children.insert(branch_target);
-    interrupt = 0;
+    // check if reach the end of a function
+    if (newfunc_reached())
+      return 0;
+    return 1;
   }
   // blbc and blbs
   found = last_instr.find("blbc");
@@ -241,19 +246,20 @@ bool BasicBlock::populate() {
     branch_target = get_2op(last_instr).second;
     children.insert(branch_target);
     children.insert(last_instr_num+1);
-    interrupt = 0;
+    // check if reach the end of a function
+    if (newfunc_reached())
+      return 0;
+    return 1;
   }
-  // bb end because of branch target in next bb
-  if (interrupt)
-    children.insert(last_instr_num+1);
 
   // check if reach the end of a function
   if (newfunc_reached())
     return 0;
-  else if (cin.eof())
-    return 0;
-  else
-    return 1;
+
+  // bb end because of branch target in next bb
+  children.insert(last_instr_num+1);
+
+  return 1;
 
 }
 
@@ -280,16 +286,16 @@ void Function::populate() {
 void Function::print_CFG() {
   cout<<"Function: "<<bb[0]->num<<endl;
 
-  cout<<"Basic blocks: ";
+  cout<<"Basic blocks:";
   for(int i=0; i<bb.size(); i++)
-    cout<<bb[i]->num<<" ";
+    cout<<" "<<bb[i]->num;
 
-  cout<<endl<<"CFG: "<<endl;
+  cout<<endl<<"CFG:"<<endl;
   for(int i=0; i<bb.size(); i++) {
-    cout<<bb[i]->num<<" -> ";
-    for(set<int>::iterator j=bb[i]->children.begin();
-        j != bb[i]->children.end(); j++)
-      cout<<*j<<" ";
+    cout<<bb[i]->num<<" ->";
+    for(set<int>::iterator j=bb[i]->children.begin(); j != bb[i]->children.end(); j++) {
+      cout<<" "<<*j;
+    }
     cout<<endl;
   }
   return;
