@@ -301,6 +301,18 @@ void Function::print_CFG() {
   return;
 }
 
+void Function::print_instr() {
+  string prefix = "    instr ";
+  for(int i=0; i<bb.size(); i++) {
+    if (bb[i]->main)
+      cout<<prefix<<bb[i]->num-1<<": entrypc\n";
+    for(list<Instr*>::iterator j=bb[i]->instr.begin(); j!=bb[i]->instr.end(); j++) {
+      cout<<(*j)->instr<<"\n";
+    }
+  }
+  return;
+}
+
 void Function::compute_live() {
   return;
 }
@@ -309,6 +321,3 @@ void Function::dec() {
   return;
 }
 
-void Function::print_instr() {
-  return;
-}

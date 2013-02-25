@@ -36,11 +36,9 @@ struct BasicBlock {
   bool populate();
 };
 
-class Function {
-private:
+struct Function {
   vector<BasicBlock*> bb;
 
-public:
   BasicBlock* get_bb(int num);
 
   void populate();
