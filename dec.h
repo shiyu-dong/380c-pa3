@@ -10,7 +10,7 @@
 using namespace std;
 
 enum OpType {REG, VAR, NONE};
-extern bool myEOF;
+extern set<int> br_target;
 
 struct Instr {
   int num;
@@ -31,6 +31,7 @@ struct BasicBlock {
   set<int> children; // indexed by bb number
 
   int branch_target;
+  bool main;
 
   bool populate();
 };
@@ -50,4 +51,6 @@ public:
 };
 
 
+pair<OpType, int> get_1op(string instr);
+pair<OpType, int> get_2op(string instr);
 #endif

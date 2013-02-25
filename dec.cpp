@@ -1,9 +1,10 @@
 #include <assert.h>
 #include <iostream>
+#include <fstream>
 #include "dec.h"
 
-bool myEOF;
 set<int> br_target;
+bool main_next = 0;
 
 // type 1, 1 reg def + 2 use
 #define DEF_REG1_SIZE 8
@@ -23,9 +24,9 @@ string def_reg4[] = {"blbc", "blbs", "write", "param"};
 string def_reg5[] = {"move"};
 // type 6, branches whose destination might be changed
 // br, blbs, blbc
-// type 7, ret, call, eneter, entrypc, read, wrl, nop won't be deleted and depend on nothing
-#define BB_END_SIZE 6
-string bb_end[] = {"br", "blbc", "blbs", "ret", "call", "nop"};
+// type 7, ret, call, enter, entrypc, read, wrl, nop won't be deleted and depend on nothing
+#define BB_END_SIZE 5
+string bb_end[] = {"br", "blbc", "blbs", "ret", "call"};
 
 inline int instr_num(string instr) {
   int pos1 = instr.find("instr ")+6;
@@ -44,16 +45,7 @@ pair<OpType, int> get_1op(string instr) {
   pos1 = op1str.find('(');
   if (pos1 != string::npos) {
     int reg_num = atoi(op1str.substr(pos1+1, op1str.length()-1).c_str());
-    //cout<<"op1: "<<reg_num<<endl;
     return make_pair(REG, reg_num);
-  }
-
-  // check if it is a branch target
-  pos1 = op1str.find('[');
-  if (pos1 != string::npos) {
-    int reg_num = atoi(op1str.substr(pos1+1, op1str.length()-1).c_str());
-    //cout<<"op2: "<<reg_num<<endl;
-    return make_pair(NONE, reg_num);
   }
 
   // check if it is a var
@@ -62,7 +54,6 @@ pair<OpType, int> get_1op(string instr) {
   pos3 = op1str.find("_offset");
   if (pos1 != string::npos && pos2 == string::npos && pos3 == string::npos) {
     int reg_num = atoi(op1str.substr(pos1+1, op1str.length()-1).c_str());
-    //cout<<"op1: "<<reg_num<<endl;
     return make_pair(VAR, reg_num);
   }
 
@@ -79,7 +70,6 @@ pair<OpType, int> get_2op(string instr) {
   pos1 = op1str.find('(');
   if (pos1 != string::npos) {
     int reg_num = atoi(op1str.substr(pos1+1, op1str.length()-1).c_str());
-    //cout<<"op2: "<<reg_num<<endl;
     return make_pair(REG, reg_num);
   }
 
@@ -87,7 +77,6 @@ pair<OpType, int> get_2op(string instr) {
   pos1 = op1str.find('[');
   if (pos1 != string::npos) {
     int reg_num = atoi(op1str.substr(pos1+1, op1str.length()-1).c_str());
-    //cout<<"op2: "<<reg_num<<endl;
     return make_pair(NONE, reg_num);
   }
 
@@ -97,27 +86,42 @@ pair<OpType, int> get_2op(string instr) {
   pos3 = op1str.find("_offset");
   if (pos1 != string::npos && pos2 == string::npos && pos3 == string::npos) {
     int reg_num = atoi(op1str.substr(pos1+1, op1str.length()-1).c_str());
-    //cout<<"op2: "<<reg_num<<endl;
     return make_pair(VAR, reg_num);
   }
 
   return make_pair(NONE, -1);
 }
 
-inline bool newfunc_reached() {
+bool newfunc_reached() {
   string s;
-  int found1, found2, found3;
+  int found1, found2;
 
   //peek line
   streampos sp = cin.tellg();
-  getline( cin, s );
-  cin.seekg( sp );
+  ios::iostate st = cin.rdstate();
+  getline(cin, s);
+
+  found1 = s.find("nop");
+  if (found1 != string::npos) {
+    getline(cin, s);
+    return 0;
+  }
+
+  cin.clear();
+  cin.setstate(st);
+  cin.seekg(sp);
+
+  found1 = s.find("entrypc");
+  if (found1 != string::npos) {
+    main_next = 1;
+    getline(cin, s);
+    return 1;
+  }
 
   found1 = s.find("enter");
-  found2 = s.find("entrypc");
-  found3 = s.find("nop");
+  found2 = s.find("nop");
 
-  if (found1 == string::npos && found2 == string::npos && found3 == string::npos)
+  if (found1 == string::npos && found2 == string::npos)
     return 0;
   else
     return 1;
@@ -127,14 +131,17 @@ inline bool newfunc_reached() {
 // return 1 if there are instructions following
 bool Instr::populate(string temp) {
   int found;
+  pair<OpType, int> t;
+  bool instr_follow;
 
   // get instruction
   instr = temp;
 
   // get intruction number
-  //cout<<instr<<endl;
   num = instr_num(instr);
-  pair<OpType, int> t;
+
+  // check if this is the last instr in the bb
+  instr_follow = (br_target.find(num+1) == br_target.end());
 
   // populate def and use
   // type 1, 1 def + 2 use
@@ -144,9 +151,7 @@ bool Instr::populate(string temp) {
       def.insert(make_pair(REG, num));
       use.insert(get_1op(instr));
       use.insert(get_2op(instr));
-      if (br_target.find(num-1) != br_target.end())
-        return 0;
-      return 1;
+      return instr_follow;
     }
   }
   // type 2, 1 def + 1 use
@@ -155,9 +160,7 @@ bool Instr::populate(string temp) {
     if (found != std::string::npos) {
       def.insert(make_pair(REG, num));
       use.insert(get_1op(instr));
-      if (br_target.find(num-1) != br_target.end())
-        return 0;
-      return 1;
+      return instr_follow;
     }
   }
   // type 3, 0 def + 2 use
@@ -166,9 +169,7 @@ bool Instr::populate(string temp) {
     if (found != std::string::npos) {
       use.insert(get_1op(instr));
       use.insert(get_2op(instr));
-      if (br_target.find(num-1) != br_target.end())
-        return 0;
-      return 1;
+      return instr_follow;
     }
   }
   // type 5, 0 def + 1 use
@@ -177,9 +178,7 @@ bool Instr::populate(string temp) {
     if (found != std::string::npos) {
       use.insert(get_1op(instr));
       def.insert(get_2op(instr));
-      if (br_target.find(num-1) != br_target.end())
-        return 0;
-      return 1;
+      return instr_follow;
     }
   }
   // type 4, 0 def + 1 use
@@ -195,7 +194,7 @@ bool Instr::populate(string temp) {
     if (found != std::string::npos)
       return 0;
   }
-  return 1;
+  return instr_follow;
 }
 
 // return 0 if reach the end of the function
@@ -203,13 +202,14 @@ bool Instr::populate(string temp) {
 bool BasicBlock::populate() {
   string temp;
   bool ret=1;
+  main = main_next;
+  main_next = 0;
 
   // get a basic block
-  while(getline(cin, temp)) {
+  while(ret && !cin.eof()) {
+    getline(cin, temp);
     instr.push_back(new Instr);
     ret = instr.back()->populate(temp);
-    if (!ret)
-      break;
   }
 
   // update basic block number
@@ -219,17 +219,20 @@ bool BasicBlock::populate() {
   string last_instr = instr.back()->instr;
   int last_instr_num = instr.back()->num;
   int found, found1;
+  bool interrupt = 1;
   // call
   found = last_instr.find("call");
   if (found != string::npos) {
     branch_target = -1;
     children.insert(last_instr_num+1);
+    interrupt = 0;
   }
   // br
   found = last_instr.find("br");
   if (found != string::npos) {
-    branch_target = get_1op(last_instr).second;
+    branch_target = get_2op(last_instr).second;
     children.insert(branch_target);
+    interrupt = 0;
   }
   // blbc and blbs
   found = last_instr.find("blbc");
@@ -238,21 +241,19 @@ bool BasicBlock::populate() {
     branch_target = get_2op(last_instr).second;
     children.insert(branch_target);
     children.insert(last_instr_num+1);
+    interrupt = 0;
   }
+  // bb end because of branch target in next bb
+  if (interrupt)
+    children.insert(last_instr_num+1);
 
   // check if reach the end of a function
-  if (cin.eof()) {
-    cout<<"end of file@@@"<<endl;
+  if (newfunc_reached())
     return 0;
-  }
-  else if (newfunc_reached()) {
-    cout<<"end of func@@@"<<endl;
+  else if (cin.eof())
     return 0;
-  }
-  else {
-    cout<<"continue @@@@"<<endl;
+  else
     return 1;
-  }
 
 }
 
@@ -267,34 +268,6 @@ BasicBlock* Function::get_bb(int num) {
 
 void Function::populate() {
   bool ret;
-
-  // store cin pos
-  streampos sp = cin.tellg();
-
-  // get all branch targets
-  string temp;
-  int pos1, pos2;
-
-  while(getline(cin, temp)) {
-    cout<<temp<<endl;
-
-    pos1 = temp.find("br");
-    if (pos1 != string::npos) {
-      br_target.insert(get_1op(temp).second);
-      continue;
-    }
-
-    pos1 = temp.find("blbc");
-    pos2 = temp.find("blbs");
-    if (pos1 != string::npos || pos2 != string::npos) {
-      br_target.insert(get_2op(temp).second);
-      continue;
-    }
-  }
-
-  // rewind cin
-  cin.seekg( sp );
-
 
   do {
     bb.push_back(new BasicBlock);

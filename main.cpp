@@ -9,13 +9,37 @@ int main(int argc, char* argv[]) {
   // argv[3] print format
 
   int j=0;
-  myEOF = 0;
   vector<Function*> functions;
-
   assert(argc == 3);
 
+  // get all branch targets
+  string temp;
+  int pos1, pos2;
+
+  while(getline(cin, temp)) {
+    pos1 = temp.find("br");
+    if (pos1 != string::npos) {
+      br_target.insert(get_2op(temp).second);
+      continue;
+    }
+
+    pos1 = temp.find("blbc");
+    pos2 = temp.find("blbs");
+    if (pos1 != string::npos || pos2 != string::npos) {
+      br_target.insert(get_2op(temp).second);
+      continue;
+    }
+  }
+
+  // rewind cin
+  cin.clear();
+  cin.seekg(0);
+  // get the first nop
+  getline(cin, temp);
+
+
   // build CFG
-  while(!myEOF) {
+  while(!cin.eof()) {
     functions.push_back(new Function);
     functions[j]->populate();
     j++;
@@ -34,7 +58,7 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   else {
-    for(int i=1; i<functions.size()-1; i++)
+    for(int i=0; i<functions.size(); i++)
       functions[i]->print_CFG();
     return 0;
   }
