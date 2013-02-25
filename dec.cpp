@@ -3,6 +3,7 @@
 #include "dec.h"
 
 bool myEOF;
+set<int> br_target;
 
 // type 1, 1 reg def + 2 use
 #define DEF_REG1_SIZE 8
@@ -124,7 +125,7 @@ inline bool newfunc_reached() {
 
 // return 0 if reach the end of basic block
 // return 1 if there are instructions following
-bool Instr::populate(char* temp) {
+bool Instr::populate(string temp) {
   int found;
 
   // get instruction
@@ -143,6 +144,8 @@ bool Instr::populate(char* temp) {
       def.insert(make_pair(REG, num));
       use.insert(get_1op(instr));
       use.insert(get_2op(instr));
+      if (br_target.find(num-1) != br_target.end())
+        return 0;
       return 1;
     }
   }
@@ -152,6 +155,8 @@ bool Instr::populate(char* temp) {
     if (found != std::string::npos) {
       def.insert(make_pair(REG, num));
       use.insert(get_1op(instr));
+      if (br_target.find(num-1) != br_target.end())
+        return 0;
       return 1;
     }
   }
@@ -161,6 +166,8 @@ bool Instr::populate(char* temp) {
     if (found != std::string::npos) {
       use.insert(get_1op(instr));
       use.insert(get_2op(instr));
+      if (br_target.find(num-1) != br_target.end())
+        return 0;
       return 1;
     }
   }
@@ -170,6 +177,8 @@ bool Instr::populate(char* temp) {
     if (found != std::string::npos) {
       use.insert(get_1op(instr));
       def.insert(get_2op(instr));
+      if (br_target.find(num-1) != br_target.end())
+        return 0;
       return 1;
     }
   }
@@ -192,19 +201,15 @@ bool Instr::populate(char* temp) {
 // return 0 if reach the end of the function
 // return 1 if there are other bb following
 bool BasicBlock::populate() {
-  char temp[128];
+  string temp;
   bool ret=1;
 
   // get a basic block
-  try {
-    while(ret) {
-      cin.getline(temp, 128);
-      instr.push_back(new Instr);
-      ret = instr.back()->populate(temp);
-      printf("temp: %s\n", temp);
-    }
-  } catch (std::exception) {
-    myEOF=1;
+  while(getline(cin, temp)) {
+    instr.push_back(new Instr);
+    ret = instr.back()->populate(temp);
+    if (!ret)
+      break;
   }
 
   // update basic block number
@@ -236,7 +241,7 @@ bool BasicBlock::populate() {
   }
 
   // check if reach the end of a function
-  if (myEOF) {
+  if (cin.eof()) {
     cout<<"end of file@@@"<<endl;
     return 0;
   }
@@ -262,6 +267,34 @@ BasicBlock* Function::get_bb(int num) {
 
 void Function::populate() {
   bool ret;
+
+  // store cin pos
+  streampos sp = cin.tellg();
+
+  // get all branch targets
+  string temp;
+  int pos1, pos2;
+
+  while(getline(cin, temp)) {
+    cout<<temp<<endl;
+
+    pos1 = temp.find("br");
+    if (pos1 != string::npos) {
+      br_target.insert(get_1op(temp).second);
+      continue;
+    }
+
+    pos1 = temp.find("blbc");
+    pos2 = temp.find("blbs");
+    if (pos1 != string::npos || pos2 != string::npos) {
+      br_target.insert(get_2op(temp).second);
+      continue;
+    }
+  }
+
+  // rewind cin
+  cin.seekg( sp );
+
 
   do {
     bb.push_back(new BasicBlock);
