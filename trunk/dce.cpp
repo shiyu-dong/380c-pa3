@@ -94,7 +94,7 @@ pair<OpType, int> get_2op(string instr) {
 
 bool newfunc_reached() {
   string s;
-  int found1, found2;
+  int found1, found2, found3;
 
   //peek line
   streampos sp = cin.tellg();
@@ -111,17 +111,11 @@ bool newfunc_reached() {
   cin.setstate(st);
   cin.seekg(sp);
 
-  found1 = s.find("entrypc");
-  if (found1 != string::npos) {
-    main_next = 1;
-    getline(cin, s);
-    return 1;
-  }
-
   found1 = s.find("enter");
   found2 = s.find("nop");
+  found3 = s.find("entrypc");
 
-  if (found1 == string::npos && found2 == string::npos)
+  if (found1 == string::npos && found2 == string::npos && found3 == string::npos)
     return 0;
   else
     return 1;
@@ -129,13 +123,19 @@ bool newfunc_reached() {
 
 // return 0 if reach the end of basic block
 // return 1 if there are instructions following
-bool Instr::populate(string temp) {
+bool Instr::populate(string temp, bool& main) {
   int found;
   pair<OpType, int> t;
   bool instr_follow;
 
   // get instruction
   instr = temp;
+  // check if it is entrypc
+  found = instr.find("entrypc");
+  if (found != string::npos) {
+    main = 1;
+    getline(cin, instr);
+  }
 
   // get intruction number
   num = instr_num(instr);
@@ -209,7 +209,7 @@ bool BasicBlock::populate() {
   while(ret && !cin.eof()) {
     getline(cin, temp);
     instr.push_back(new Instr);
-    ret = instr.back()->populate(temp);
+    ret = instr.back()->populate(temp, main);
   }
 
   // update basic block number

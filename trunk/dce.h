@@ -18,7 +18,7 @@ struct Instr {
   set<pair<OpType, int> > def;
   string instr;
 
-  bool populate(string);
+  bool populate(string, bool&);
 };
 
 struct BasicBlock {
