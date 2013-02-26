@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include "dce.h"
 
 using namespace std;
@@ -58,9 +59,9 @@ bool Function::compute_bb_live(int bb_num) {
   parent->children_live.clear();
   
   // union of all children's live_list
-  for(set<int>::iterator i=parent->children.begin();
-      i!=parent->children.end(); i++) {
-    BasicBlock* child = get_bb(*i);
+  for(set<BasicBlock*>::iterator i=parent->children_p.begin();
+      i!=parent->children_p.end(); i++) {
+    BasicBlock* child = *i;
     for(set<int>::iterator j=child->live_list.begin();
         j!=child->live_list.end(); j++) {
       live_t.insert(*j);
@@ -120,7 +121,7 @@ void Function::compute_live() {
 }
 
 // retrun true if any dce happens
-bool BasicBlock::dce() {
+bool BasicBlock::dce(Function* f) {
   // live hold live C variables 
   set<int> live;
   // dead hold dead virtual registers
@@ -171,6 +172,7 @@ bool BasicBlock::dce() {
             dead.insert(jt->second);
           }
         }
+
         // delete this instruction
         it = instr.erase(it);
         eliminated |= 1;
@@ -180,6 +182,66 @@ bool BasicBlock::dce() {
   }
 
   return eliminated;
+}
+
+int Function::next_instr_num(int start) {
+  if (start == -1)
+    assert(0 && "illegal instruction number");
+  for(int i=0; i<bb.size(); i++) {
+    if (bb[i]->num >= start) {
+      return bb[i]->num;
+    }
+  }
+  assert(0 && "illegal instruction number");
+  return -1;
+}
+
+void Function::reconnect() {
+
+  // for each bb check make sure bb num is correct
+  for(int i=0; i<bb.size(); i++) {
+    // there must be instr in this bb
+    assert(bb[i]->instr.size() > 0);
+
+    bb[i]->num = (*bb[i]->instr.begin())->num;
+  }
+
+  // for each bb check check branch destination exists
+  for(int i=0; i<bb.size(); i++) {
+    // branch target is correct, last branch instruction is correct
+    if (bb[i]->branch_target != -1) {
+      bool need_to_reconnect = 1;
+
+      for(set<BasicBlock*>::iterator it=bb[i]->children_p.begin();
+          it != bb[i]->children_p.end(); it++) {
+        if (bb[i]->branch_target == (*it)->num) {
+          cout<<(*it)->num<<endl;
+          need_to_reconnect = 0;
+        }
+      }
+
+      if (need_to_reconnect) {
+        bb[i]->branch_target = next_instr_num(bb[i]->branch_target);
+
+        // change branch instruction string
+        string old_instr = bb[i]->instr.back()->instr;
+        string new_instr;
+        stringstream t;
+
+        t<<bb[i]->branch_target;
+
+        size_t pos = old_instr.find('[');
+        assert(pos != string::npos);
+
+        new_instr += old_instr.substr(0, pos+1);
+        new_instr += t.str();
+        new_instr += "]";
+        bb[i]->instr.back()->instr = new_instr;
+        }
+    }
+  }
+
+  return;
 }
 
 void Function::dce() {
@@ -219,10 +281,30 @@ void Function::dce() {
     print_instr();
 
     // dce on each bb
-    for(int i=0; i<bb.size(); i++) {
-      has_change |= bb[i]->dce();
+    for(vector<BasicBlock*>::iterator i=bb.begin();
+        i != bb.end(); i++) {
+      has_change |= (*i)->dce(this);
+
+      // delete a bb if it is empty
+      if ((*i)->instr.size() == 0) {
+        // reconnect its parents to its children
+        for(set<BasicBlock*>::iterator it = (*i)->parent_p.begin();
+            it != (*i)->parent_p.end(); it++) {
+          // remove myself from parent's children list
+          (*it)->children_p.erase(*i);
+          // add my children to parent's children list
+          for(set<BasicBlock*>::iterator jt = (*i)->children_p.begin();
+              jt != (*i)->children_p.end(); jt++) {
+            (*it)->children_p.insert((*jt));
+          }
+        }
+        cout<<"erasing bb: "<<(*i)->num<<endl;
+        i = bb.erase(i);
+      }
     }
   }
+  // reconnect the CFG
+  reconnect();
 
   return;
 }
