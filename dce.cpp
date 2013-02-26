@@ -54,6 +54,8 @@ bool Function::compute_bb_live(int bb_num) {
   // construct a temp set;
   // compare it with live_list to detect changes
   set<int> live_t;
+
+  parent->children_live.clear();
   
   // union of all children's live_list
   for(set<int>::iterator i=parent->children.begin();
@@ -62,6 +64,7 @@ bool Function::compute_bb_live(int bb_num) {
     for(set<int>::iterator j=child->live_list.begin();
         j!=child->live_list.end(); j++) {
       live_t.insert(*j);
+      parent->children_live.insert(*j);
     }
   }
 
@@ -102,11 +105,6 @@ bool Function::compute_bb_live(int bb_num) {
   return true;
 }
 
-// retrun true if any dce happens
-bool BasicBlock::dce() {
-  return true;
-}
-
 void Function::compute_live() {
   bool has_change = 1;
 
@@ -119,6 +117,69 @@ void Function::compute_live() {
   }
 
   return;
+}
+
+// retrun true if any dce happens
+bool BasicBlock::dce() {
+  // live hold live C variables 
+  set<int> live;
+  // dead hold dead virtual registers
+  set<int> dead;
+  bool eliminated = false;
+
+  // working bottom up, init live
+  live.clear();
+  live = children_live;
+  dead.clear();
+
+  // an instr should be eliminated if
+  // 1) it defines a C variable that is not live
+  // 2) it defines virtual registers that are dead
+  // update dead virtual registers in both cases
+
+  list<Instr*>::iterator it = instr.end();
+  while(it != instr.begin()) {
+    it --;
+
+    // check if it uses any C variables not in live_list
+    if ((*it)->use.size() != 0) {
+      set<pair<OpType, int> >::iterator jt;
+      for(jt = (*it)->use.begin(); jt != (*it)->use.end(); jt++) {
+        if (jt->first == VAR) {
+          live.insert(jt->second);
+        }
+      }
+    }
+
+    if ((*it)->def.size() != 0) {
+      pair<OpType, int> this_def= *(*it)->def.begin();
+    // check if it defines dead C variable
+    // check if it defines dead virtual reg
+      if ( (this_def.first == VAR && live.find(this_def.second) == live.end()) ||
+           (this_def.first == REG && dead.find(this_def.second) != dead.end()) ){
+
+        cout<<"erasing: "<<(*it)->instr<<" ";
+        cout<<(this_def.first == VAR)<<" ";
+        cout<<(live.find(this_def.second) == live.end())<<" ";
+        cout<<(this_def.first == REG)<<" ";
+        cout<<(dead.find(this_def.second) != def.end())<<endl;
+
+        // copy all it's virtual register into dead
+        for(set<pair<OpType, int> >::iterator jt = (*it)->use.begin();
+            jt != (*it)->use.end(); jt++) {
+          if (jt->first == REG) {
+            dead.insert(jt->second);
+          }
+        }
+        // delete this instruction
+        it = instr.erase(it);
+        eliminated |= 1;
+      }
+    }
+
+  }
+
+  return eliminated;
 }
 
 void Function::dce() {
@@ -155,11 +216,12 @@ void Function::dce() {
       cout<<endl;
     }
 
+    print_instr();
 
     // dce on each bb
-    //for(int i=0; i<bb.size(); i++) {
-    //  has_change |= bb[i]->dce();
-    //}
+    for(int i=0; i<bb.size(); i++) {
+      has_change |= bb[i]->dce();
+    }
   }
 
   return;

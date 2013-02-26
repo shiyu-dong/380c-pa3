@@ -29,6 +29,7 @@ struct BasicBlock {
   set<int> live_list;  // always refers to C variables
   list<Instr*> instr;
   set<int> children; // indexed by bb number
+  set<int> children_live; // live C variables of children
 
   int branch_target;
   bool main;

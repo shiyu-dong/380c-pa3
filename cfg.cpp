@@ -332,15 +332,15 @@ void Function::print_instr() {
     if (bb[i]->main)
       cout<<prefix<<bb[i]->num-1<<": entrypc\n";
 
-    // print def use for each instruction
     for(list<Instr*>::iterator j=bb[i]->instr.begin(); j!=bb[i]->instr.end(); j++) {
       cout<<(*j)->instr<<"\n";
-      cout<<"use:\n";
-      for(set<pair<OpType, int> >::iterator k=(*j)->use.begin(); k != (*j)->use.end(); k++)
-        cout<<"\t"<<k->first<<" "<<k->second<<"\n";
-      cout<<"def:\n";
-      for(set<pair<OpType, int> >::iterator k=(*j)->def.begin(); k != (*j)->def.end(); k++)
-        cout<<"\t"<<k->first<<" "<<k->second<<"\n";
+      // print def use for each instruction
+//      cout<<"use:\n";
+//      for(set<pair<OpType, int> >::iterator k=(*j)->use.begin(); k != (*j)->use.end(); k++)
+//        cout<<"\t"<<k->first<<" "<<k->second<<"\n";
+//      cout<<"def:\n";
+//      for(set<pair<OpType, int> >::iterator k=(*j)->def.begin(); k != (*j)->def.end(); k++)
+//        cout<<"\t"<<k->first<<" "<<k->second<<"\n";
     }
   }
   return;
