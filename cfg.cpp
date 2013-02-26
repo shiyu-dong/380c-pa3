@@ -6,25 +6,32 @@
 set<int> br_target;
 bool main_next = 0;
 
-// type 1, 1 reg def + 2 use
+// type 1
+// 1 reg def + 2 use
 #define DEF_REG1_SIZE 8
 string def_reg1[] = {"add", "sub", "mul", "div", "mod", 
                      "cmpeq", "cmple", "cmplt"};
-// type 2, 1 reg def + 1 use of the only op
+// type 2
+// 1 reg def + 1 use of the only op
 #define DEF_REG2_SIZE 2
 string def_reg2[] = {"neg", "load"};
-// type 3, 0 reg def + 2 use
+// type 3
+// 0 reg def + 2 use
 #define DEF_REG3_SIZE 1
 string def_reg3[] = {"store"};
-// type 4, 0 def + 1st use of two ops
+// type 4
+// 0 def + 1st use of two ops
+// need to check BB boundary
 #define DEF_REG4_SIZE 2
 string def_reg4[] = {"blbc", "blbs"};
-// type 6, 0 def + 1 use of the only op
-#define DEF_REG6_SIZE 2
-string def_reg6[] = {"write", "param"};
-// type 5, 1 def + 1 use, define in 2nd operand position
+// type 5
+// 1 def + 1 use, define in 2nd operand position
 #define DEF_REG5_SIZE 1
 string def_reg5[] = {"move"};
+// type 6
+// 0 def + 1 use of the only op
+#define DEF_REG6_SIZE 2
+string def_reg6[] = {"write", "param"};
 // type 7, branches whose destination might be changed
 // br, blbs, blbc
 // type 8, ret, call, enter, entrypc, read, wrl, nop won't be deleted and depend on nothing
@@ -174,7 +181,7 @@ bool Instr::populate(string temp, bool& main) {
     found = instr.find(def_reg3[i]);
     if (found != std::string::npos) {
       use.insert(get_1op(instr));
-      def.insert(get_2op(instr));
+      use.insert(get_2op(instr));
       return instr_follow;
     }
   }
