@@ -14,11 +14,11 @@ string def_reg1[] = {"add", "sub", "mul", "div", "mod",
 #define DEF_REG2_SIZE 2
 string def_reg2[] = {"neg", "load"};
 // type 3, 0 reg def + 2 use
-#define DEF_REG3_SIZE 1
-string def_reg3[] = {"store"};
+#define DEF_REG3_SIZE 2
+string def_reg3[] = {"store", "write"};
 // type 4, 0 def + 1 use
-#define DEF_REG4_SIZE 4
-string def_reg4[] = {"blbc", "blbs", "write", "param"};
+#define DEF_REG4_SIZE 3
+string def_reg4[] = {"blbc", "blbs", "param"};
 // type 5, 1 def + 1 use, define in 2nd operand position
 #define DEF_REG5_SIZE 1
 string def_reg5[] = {"move"};
@@ -128,6 +128,9 @@ bool Instr::populate(string temp, bool& main) {
   pair<OpType, int> t;
   bool instr_follow;
 
+  use.clear();
+  def.clear();
+
   // get instruction
   instr = temp;
   // check if it is entrypc
@@ -204,6 +207,9 @@ bool BasicBlock::populate() {
   bool ret=1;
   main = main_next;
   main_next = 0;
+
+  live_list.clear();
+  children.clear();
 
   // get a basic block
   while(ret && !cin.eof()) {
@@ -306,18 +312,17 @@ void Function::print_instr() {
   for(int i=0; i<bb.size(); i++) {
     if (bb[i]->main)
       cout<<prefix<<bb[i]->num-1<<": entrypc\n";
-    for(list<Instr*>::iterator j=bb[i]->instr.begin(); j!=bb[i]->instr.end(); j++) {
-      cout<<(*j)->instr<<"\n";
-    }
+    // print def use for each instruction
+//    for(list<Instr*>::iterator j=bb[i]->instr.begin(); j!=bb[i]->instr.end(); j++) {
+//      cout<<(*j)->instr<<"\n";
+//      cout<<"use:\n";
+//      for(set<pair<OpType, int> >::iterator k=(*j)->use.begin(); k != (*j)->use.end(); k++)
+//        cout<<"\t"<<k->first<<" "<<k->second<<"\n";
+//      cout<<"def:\n";
+//      for(set<pair<OpType, int> >::iterator k=(*j)->def.begin(); k != (*j)->def.end(); k++)
+//        cout<<"\t"<<k->first<<" "<<k->second<<"\n";
+//    }
   }
-  return;
-}
-
-void Function::compute_live() {
-  return;
-}
-
-void Function::dec() {
   return;
 }
 

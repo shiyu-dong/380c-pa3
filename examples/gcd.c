@@ -14,7 +14,7 @@ void GCD(long a, long b)
   long c;
 
   while (b != 0) {
-    c = a;
+    a = c;
     a = b;
     b = c % b;
     WriteLong(c);
@@ -28,12 +28,16 @@ void GCD(long a, long b)
 
 void main()
 {
+  long c, d;
+
   a = 25733;
   b = 48611;
   GCD(a, b);
   WriteLong(res);
   WriteLine();
   WriteLine();
+
+  c = d;
 
   a = 7485671;
   b = 7480189;
