@@ -10,21 +10,24 @@ bool main_next = 0;
 #define DEF_REG1_SIZE 8
 string def_reg1[] = {"add", "sub", "mul", "div", "mod", 
                      "cmpeq", "cmple", "cmplt"};
-// type 2, 1 reg def + 1 use
+// type 2, 1 reg def + 1 use of the only op
 #define DEF_REG2_SIZE 2
 string def_reg2[] = {"neg", "load"};
 // type 3, 0 reg def + 2 use
-#define DEF_REG3_SIZE 2
-string def_reg3[] = {"store", "write"};
-// type 4, 0 def + 1 use
+#define DEF_REG3_SIZE 1
+string def_reg3[] = {"store"};
+// type 4, 0 def + 1st use of two ops
 #define DEF_REG4_SIZE 3
 string def_reg4[] = {"blbc", "blbs", "param"};
+// type 6, 0 def + 1 use of the only op
+#define DEF_REG6_SIZE 1
+string def_reg6[] = {"write"};
 // type 5, 1 def + 1 use, define in 2nd operand position
 #define DEF_REG5_SIZE 1
 string def_reg5[] = {"move"};
-// type 6, branches whose destination might be changed
+// type 7, branches whose destination might be changed
 // br, blbs, blbc
-// type 7, ret, call, enter, entrypc, read, wrl, nop won't be deleted and depend on nothing
+// type 8, ret, call, enter, entrypc, read, wrl, nop won't be deleted and depend on nothing
 #define BB_END_SIZE 5
 string bb_end[] = {"br", "blbc", "blbs", "ret", "call"};
 
@@ -162,7 +165,7 @@ bool Instr::populate(string temp, bool& main) {
     found = instr.find(def_reg2[i]);
     if (found != std::string::npos) {
       def.insert(make_pair(REG, num));
-      use.insert(get_1op(instr));
+      use.insert(get_2op(instr));
       return instr_follow;
     }
   }
@@ -181,6 +184,14 @@ bool Instr::populate(string temp, bool& main) {
     if (found != std::string::npos) {
       use.insert(get_1op(instr));
       def.insert(get_2op(instr));
+      return instr_follow;
+    }
+  }
+  // type 6, 0 def + 1 use
+  for(int i=0; i<DEF_REG6_SIZE; i++) {
+    found = instr.find(def_reg6[i]);
+    if (found != std::string::npos) {
+      use.insert(get_2op(instr));
       return instr_follow;
     }
   }
@@ -299,7 +310,8 @@ void Function::print_CFG() {
   cout<<endl<<"CFG:"<<endl;
   for(int i=0; i<bb.size(); i++) {
     cout<<bb[i]->num<<" ->";
-    for(set<int>::iterator j=bb[i]->children.begin(); j != bb[i]->children.end(); j++) {
+    for(set<int>::iterator j=bb[i]->children.begin();
+        j != bb[i]->children.end(); j++) {
       cout<<" "<<*j;
     }
     cout<<endl;
