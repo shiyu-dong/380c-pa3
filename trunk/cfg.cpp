@@ -17,11 +17,11 @@ string def_reg2[] = {"neg", "load"};
 #define DEF_REG3_SIZE 1
 string def_reg3[] = {"store"};
 // type 4, 0 def + 1st use of two ops
-#define DEF_REG4_SIZE 3
-string def_reg4[] = {"blbc", "blbs", "param"};
+#define DEF_REG4_SIZE 2
+string def_reg4[] = {"blbc", "blbs"};
 // type 6, 0 def + 1 use of the only op
-#define DEF_REG6_SIZE 1
-string def_reg6[] = {"write"};
+#define DEF_REG6_SIZE 2
+string def_reg6[] = {"write", "param"};
 // type 5, 1 def + 1 use, define in 2nd operand position
 #define DEF_REG5_SIZE 1
 string def_reg5[] = {"move"};
@@ -174,7 +174,7 @@ bool Instr::populate(string temp, bool& main) {
     found = instr.find(def_reg3[i]);
     if (found != std::string::npos) {
       use.insert(get_1op(instr));
-      use.insert(get_2op(instr));
+      def.insert(get_2op(instr));
       return instr_follow;
     }
   }
@@ -324,16 +324,17 @@ void Function::print_instr() {
   for(int i=0; i<bb.size(); i++) {
     if (bb[i]->main)
       cout<<prefix<<bb[i]->num-1<<": entrypc\n";
+
     // print def use for each instruction
-//    for(list<Instr*>::iterator j=bb[i]->instr.begin(); j!=bb[i]->instr.end(); j++) {
-//      cout<<(*j)->instr<<"\n";
-//      cout<<"use:\n";
-//      for(set<pair<OpType, int> >::iterator k=(*j)->use.begin(); k != (*j)->use.end(); k++)
-//        cout<<"\t"<<k->first<<" "<<k->second<<"\n";
-//      cout<<"def:\n";
-//      for(set<pair<OpType, int> >::iterator k=(*j)->def.begin(); k != (*j)->def.end(); k++)
-//        cout<<"\t"<<k->first<<" "<<k->second<<"\n";
-//    }
+    for(list<Instr*>::iterator j=bb[i]->instr.begin(); j!=bb[i]->instr.end(); j++) {
+      cout<<(*j)->instr<<"\n";
+      cout<<"use:\n";
+      for(set<pair<OpType, int> >::iterator k=(*j)->use.begin(); k != (*j)->use.end(); k++)
+        cout<<"\t"<<k->first<<" "<<k->second<<"\n";
+      cout<<"def:\n";
+      for(set<pair<OpType, int> >::iterator k=(*j)->def.begin(); k != (*j)->def.end(); k++)
+        cout<<"\t"<<k->first<<" "<<k->second<<"\n";
+    }
   }
   return;
 }
