@@ -11,6 +11,15 @@ using namespace std;
 
 enum OpType {REG, VAR, NONE};
 extern set<int> br_target;
+struct Function;
+
+inline int instr_num(string instr) {
+  int pos1 = instr.find("instr ")+6;
+  int len = instr.find(":")-pos1;
+  
+  return atoi(instr.substr(pos1, len).c_str());
+}
+
 
 struct Instr {
   int num;
@@ -28,7 +37,9 @@ struct BasicBlock {
   set<int> def;  // always refers to C variables
   set<int> live_list;  // always refers to C variables
   list<Instr*> instr;
-  set<int> children; // indexed by bb number
+  set<int> children; // indexed by bb number, used in population only
+  set<BasicBlock*> children_p; // children pointers
+  set<BasicBlock*> parent_p; // children pointers
   set<int> children_live; // live C variables of children
 
   int branch_target;
@@ -39,7 +50,7 @@ struct BasicBlock {
 
   // DCE
   void compute_defuse();
-  bool dce();
+  bool dce(Function*);
   inline void add_instr_def(list<Instr*>::iterator);
   inline void add_instr_use(list<Instr*>::iterator);
 };
@@ -58,6 +69,8 @@ struct Function {
   void compute_live();
   bool compute_bb_live(int);
   void dce();
+  void reconnect();
+  int next_instr_num(int);
 };
 
 

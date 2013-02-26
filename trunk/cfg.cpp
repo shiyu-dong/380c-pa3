@@ -38,13 +38,6 @@ string def_reg6[] = {"write", "param"};
 #define BB_END_SIZE 5
 string bb_end[] = {"br", "blbc", "blbs", "ret", "call"};
 
-inline int instr_num(string instr) {
-  int pos1 = instr.find("instr ")+6;
-  int len = instr.find(":")-pos1;
-  
-  return atoi(instr.substr(pos1, len).c_str());
-}
-
 pair<OpType, int> get_1op(string instr) {
   int pos1, pos2, pos3;
   string op1str;
@@ -228,6 +221,9 @@ bool BasicBlock::populate() {
 
   live_list.clear();
   children.clear();
+  children_p.clear();
+  parent_p.clear();
+  branch_target = -1;
 
   // get a basic block
   while(ret && !cin.eof()) {
@@ -299,10 +295,21 @@ BasicBlock* Function::get_bb(int num) {
 void Function::populate() {
   bool ret;
 
+  // populate each basic block
   do {
     bb.push_back(new BasicBlock);
     ret = bb.back()->populate();
   } while(ret);
+
+  // connect pointers
+  for(int i=0; i<bb.size(); i++) {
+    for(set<int>::iterator it = bb[i]->children.begin();
+        it != bb[i]->children.end(); it++) {
+      BasicBlock* b = get_bb(*it);
+      bb[i]->children_p.insert(b);
+      b->parent_p.insert(bb[i]);
+    }
+  }
 
   return;
 }
@@ -317,9 +324,9 @@ void Function::print_CFG() {
   cout<<endl<<"CFG:"<<endl;
   for(int i=0; i<bb.size(); i++) {
     cout<<bb[i]->num<<" ->";
-    for(set<int>::iterator j=bb[i]->children.begin();
-        j != bb[i]->children.end(); j++) {
-      cout<<" "<<*j;
+    for(set<BasicBlock*>::iterator j=bb[i]->children_p.begin();
+        j != bb[i]->children_p.end(); j++) {
+      cout<<" "<<(*j)->num;
     }
     cout<<endl;
   }
