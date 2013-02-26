@@ -33,7 +33,14 @@ struct BasicBlock {
   int branch_target;
   bool main;
 
+  // CFG
   bool populate();
+
+  // DCE
+  void compute_defuse();
+  bool dce();
+  inline void add_instr_def(list<Instr*>::iterator);
+  inline void add_instr_use(list<Instr*>::iterator);
 };
 
 struct Function {
@@ -41,11 +48,15 @@ struct Function {
 
   BasicBlock* get_bb(int num);
 
+  // CFG
   void populate();
-  void compute_live();
-  void dec();
   void print_CFG();
   void print_instr();
+
+  // DCE
+  void compute_live();
+  bool compute_bb_live(int);
+  void dce();
 };
 
 

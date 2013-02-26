@@ -37,7 +37,6 @@ int main(int argc, char* argv[]) {
   // get the first nop
   getline(cin, temp);
 
-
   // build CFG
   while(!cin.eof()) {
     functions.push_back(new Function);
@@ -45,22 +44,27 @@ int main(int argc, char* argv[]) {
     j++;
   }
 
+  // compute liveness and dce
   if(!strcmp(argv[1], "-opt=dce")) {
+    // print CFG
+    for(int i=0; i<functions.size(); i++)
+      functions[i]->print_CFG();
+    cout<<endl;
     for(int i=0; i<functions.size(); i++) {
-      functions[i]->compute_live();
-      functions[i]->dec();
+      functions[i]->dce();
     }
   }
 
   if(!strcmp(argv[2], "-backend=3addr")) {
-    string prefix = "    instr ";
-    cout<<prefix<<"1"<<": nop\n";
 
-    for(int i=0; i<functions.size(); i++)
-      functions[i]->print_instr();
+    //string prefix = "    instr ";
+    //cout<<prefix<<"1"<<": nop\n";
 
-    int last_instr_num = functions.back()->bb.back()->instr.back()->num;
-    cout<<prefix<<++last_instr_num<<": nop\n";
+    //for(int i=0; i<functions.size(); i++)
+    //  functions[i]->print_instr();
+
+    //int last_instr_num = functions.back()->bb.back()->instr.back()->num;
+    //cout<<prefix<<++last_instr_num<<": nop\n";
 
     return 0;
   }
