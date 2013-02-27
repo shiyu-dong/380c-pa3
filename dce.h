@@ -9,6 +9,8 @@
 #include <utility>
 using namespace std;
 
+#define DEBUG_1
+
 enum OpType {REG, VAR, NONE};
 extern set<int> br_target;
 struct Function;
