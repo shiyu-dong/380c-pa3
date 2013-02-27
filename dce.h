@@ -3,13 +3,14 @@
 
 #include <cstdlib>
 #include <list>
+#include <map>
 #include <set>
 #include <vector>
 #include <string>
 #include <utility>
 using namespace std;
 
-#define DEBUG_1
+//#define DEBUG_1
 
 enum OpType {REG, VAR, NONE};
 extern set<int> br_target;
@@ -52,15 +53,15 @@ struct BasicBlock {
 
   // DCE
   void compute_defuse();
-  bool dce(Function*, set<int>&);
+  bool dce(Function*);
   inline void add_instr_def(list<Instr*>::iterator);
   inline void add_instr_use(list<Instr*>::iterator);
 };
 
 struct Function {
   vector<BasicBlock*> bb;
-  set<int> dead_var_offset;
-  int local_size; // negative number..
+  map<int, int> var_map;
+  int local_size;
 
   BasicBlock* get_bb(int);
 
@@ -74,7 +75,7 @@ struct Function {
   bool compute_bb_live(int);
   void dce();
   void reconnect();
-  void rename_operand(string&);
+  void rename_operand(string&, int&);
   void rename();
   int next_instr_num(int);
 };
