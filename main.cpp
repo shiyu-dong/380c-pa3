@@ -10,6 +10,7 @@ int main(int argc, char* argv[]) {
 
   int j=0;
   vector<Function*> functions;
+  map<int, int> none;
   assert(argc == 3);
 
   // get all branch targets
@@ -19,14 +20,14 @@ int main(int argc, char* argv[]) {
   while(getline(cin, temp)) {
     pos1 = temp.find("br");
     if (pos1 != string::npos) {
-      br_target.insert(get_2op(temp).second);
+      br_target.insert(get_2op(temp, none, 0).second);
       continue;
     }
 
     pos1 = temp.find("blbc");
     pos2 = temp.find("blbs");
     if (pos1 != string::npos || pos2 != string::npos) {
-      br_target.insert(get_2op(temp).second);
+      br_target.insert(get_2op(temp, none, 0).second);
       continue;
     }
   }
