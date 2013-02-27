@@ -124,7 +124,7 @@ void Function::compute_live() {
 }
 
 // retrun true if any dce happens
-bool BasicBlock::dce(Function* f, set<int>& dead_var_offset) {
+bool BasicBlock::dce(Function* f) {
   // live hold live C variables 
   set<int> live;
   // dead hold dead virtual registers
@@ -161,14 +161,6 @@ bool BasicBlock::dce(Function* f, set<int>& dead_var_offset) {
     // check if it defines dead virtual reg
       if ( (this_def.first == VAR && live.find(this_def.second) == live.end()) ||
            (this_def.first == REG && dead.find(this_def.second) != dead.end()) ){
-
-        // update dead var offset
-        if (this_def.first == VAR && live.find(this_def.second) == live.end()) {
-#ifdef DEBUG_1
-          cout<<"//inserting dead var: "<<this_def.second<<endl;
-#endif
-          dead_var_offset.insert(this_def.second);
-        }
 
         // copy all it's virtual register into dead
         for(set<pair<OpType, int> >::iterator jt = (*it)->use.begin();
@@ -251,8 +243,9 @@ void Function::reconnect() {
   return;
 }
 
-void Function::rename_operand(string & instr) {
+void Function::rename_operand(string & instr, int & count) {
   int last_pos, pos1, pos = -1;
+  map<int, int>::iterator it;
 
   while(1) {
     last_pos = pos+1;
@@ -264,18 +257,15 @@ void Function::rename_operand(string & instr) {
       pos1 = instr.find(' ', pos);
     int offset = atoi(instr.substr(pos+1, pos1).c_str());
 
-    // shift offset close to zero
-    int count=0;
-    for(set<int>::iterator it = dead_var_offset.begin();
-        it != dead_var_offset.end(); it++) {
-      if (offset < *it) {
-        count++;
+    // rename the offset
+    if (offset < 0) {
+      it = var_map.find(offset);
+      if (it == var_map.end()) {
+        var_map[offset] = count*(-8);
+        count = count+1;
       }
-      else {
-        break;
-      }
+      offset = var_map[offset];
     }
-    offset += count*8;
 
     // put back
     string new_str;
@@ -294,17 +284,15 @@ void Function::rename_operand(string & instr) {
 }
 
 void Function::rename() {
-#ifdef DEBUG_1
-  cout<<"//dead var size: "<<dead_var_offset.size()<<endl;
-#endif
-  local_size = local_size + dead_var_offset.size()*8;
+  int count = 1;
   // rename C registers of each instruction
   for(int i=0; i<bb.size(); i++) {
     for(list<Instr*>::iterator it = bb[i]->instr.begin();
         it != bb[i]->instr.end(); it++) {
-        rename_operand((*it)->instr);
+        rename_operand((*it)->instr, count);
     }
   }
+  local_size = var_map.size()*8;
 }
 
 void Function::dce() {
@@ -340,7 +328,7 @@ void Function::dce() {
     // dce on each bb
     for(vector<BasicBlock*>::iterator i=bb.begin();
         i != bb.end(); i++) {
-      has_change |= (*i)->dce(this, dead_var_offset);
+      has_change |= (*i)->dce(this);
 
       // delete a bb if it is empty
       if ((*i)->instr.size() == 0) {

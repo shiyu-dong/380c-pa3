@@ -152,7 +152,7 @@ bool Instr::populate(string temp, bool& main, int& local_size) {
   if (found != string::npos) {
     found = instr.rfind(' ');
     local_size = atoi(instr.substr(found+1).c_str());
-    local_size = 0-local_size;
+    local_size = local_size;
   }
 
   // check if this is the last instr in the bb
@@ -303,7 +303,8 @@ BasicBlock* Function::get_bb(int num) {
 
 void Function::populate() {
   bool ret;
-  dead_var_offset.clear();
+
+  var_map.clear();
 
   // populate each basic block
   do {
@@ -355,7 +356,7 @@ void Function::print_instr() {
       if (pos == string::npos)
         cout<<(*j)->instr<<"\n";
       else
-        cout<<prefix<<(*j)->num<<": enter "<<(-local_size)<<"\n";
+        cout<<prefix<<(*j)->num<<": enter "<<local_size<<"\n";
 
       // print def use for each instruction
 //      cout<<"use:\n";
