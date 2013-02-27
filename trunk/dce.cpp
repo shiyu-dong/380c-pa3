@@ -242,13 +242,55 @@ void Function::reconnect() {
   return;
 }
 
+void Function::rename_operand(string & instr) {
+  int last_pos, pos1, pos = -1;
+
+  while(1) {
+    last_pos = pos+1;
+    pos = instr.find('#', last_pos);
+    if (pos == string::npos)
+      break;
+    else if (instr.substr(last_pos, pos).find("_base") != string::npos)
+      continue;
+      pos1 = instr.find(' ', pos);
+    int offset = atoi(instr.substr(pos+1, pos1).c_str());
+
+    // shift offset close to zero
+    int count=0;
+    for(set<int>::iterator it = dead_var_offset.begin();
+        it != dead_var_offset.end(); it++) {
+      if (offset < *it) {
+        count++;
+      }
+      else {
+        break;
+      }
+    }
+    offset += count*8;
+
+    // put back
+    string new_str;
+    stringstream t;
+    int pos2 = instr.find(' ', pos);
+
+    t<<offset;
+
+    new_str = instr.substr(0, pos+1);
+    new_str += t.str();
+    if (pos2 != string::npos)
+      new_str += instr.substr(pos2);
+
+    instr = new_str;
+  }
+}
+
 void Function::rename() {
   local_size = local_size + dead_var_offset.size()*8;
   // rename C registers of each instruction
   for(int i=0; i<bb.size(); i++) {
     for(list<Instr*>::iterator it = bb[i]->instr.begin();
         it != bb[i]->instr.end(); it++) {
-     // TODO 
+        rename_operand((*it)->instr);
     }
   }
 }
@@ -267,16 +309,16 @@ void Function::dce() {
     // compute live var for each bb
     compute_live();
 
-    for(int i=0; i<bb.size(); i++) {
-      cout<<"BB num: "<<bb[i]->num<<"\n\t";
-      for(set<int>::iterator j=bb[i]->live_list.begin();
-          j != bb[i]->live_list.end(); j++) {
-          cout<<*j<<" ";
-      }
-      cout<<endl;
-    }
+    //for(int i=0; i<bb.size(); i++) {
+    //  cout<<"BB num: "<<bb[i]->num<<"\n\t";
+    //  for(set<int>::iterator j=bb[i]->live_list.begin();
+    //      j != bb[i]->live_list.end(); j++) {
+    //      cout<<*j<<" ";
+    //  }
+    //  cout<<endl;
+    //}
 
-    print_instr();
+    //print_instr();
 
     // dce on each bb
     for(vector<BasicBlock*>::iterator i=bb.begin();
@@ -296,7 +338,7 @@ void Function::dce() {
             (*it)->children_p.insert((*jt));
           }
         }
-        cout<<"erasing bb: "<<(*i)->num<<endl;
+        //cout<<"erasing bb: "<<(*i)->num<<endl;
         i = bb.erase(i);
       }
     }
