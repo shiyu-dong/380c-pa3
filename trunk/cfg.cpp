@@ -345,12 +345,18 @@ void Function::print_CFG() {
 
 void Function::print_instr() {
   string prefix = "    instr ";
+  int pos;
   for(int i=0; i<bb.size(); i++) {
     if (bb[i]->main)
       cout<<prefix<<bb[i]->num-1<<": entrypc\n";
 
     for(list<Instr*>::iterator j=bb[i]->instr.begin(); j!=bb[i]->instr.end(); j++) {
-      cout<<(*j)->instr<<"\n";
+      pos = (*j)->instr.find("enter");
+      if (pos == string::npos)
+        cout<<(*j)->instr<<"\n";
+      else
+        cout<<prefix<<(*j)->num<<": enter "<<(-local_size)<<"\n";
+
       // print def use for each instruction
 //      cout<<"use:\n";
 //      for(set<pair<OpType, int> >::iterator k=(*j)->use.begin(); k != (*j)->use.end(); k++)

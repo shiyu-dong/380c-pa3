@@ -7,5 +7,5 @@
 PROGRAM=$1
 BASENAME=`basename $PROGRAM .c`
 echo $PROGRAM
-../dce 1 -backend=cfg < ${BASENAME}.3addr > ${BASENAME}.cfg
+../dce -opt=none -backend=cfg < ${BASENAME}.3addr > ${BASENAME}.cfg
 diff ${BASENAME}.cfg ${BASENAME}.ta.cfg
