@@ -1,4 +1,4 @@
 all: cfg.cpp dce.cpp dce.h main.cpp
-	g++ -g cfg.cpp dce.cpp main.cpp -o dce
+	g++ -g main.cpp cfg.cpp dce.cpp -o dce
 clean:
 	rm -rf dce dce.dSYM/ 

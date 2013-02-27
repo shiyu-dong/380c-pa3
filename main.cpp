@@ -47,9 +47,6 @@ int main(int argc, char* argv[]) {
   // compute liveness and dce
   if(!strcmp(argv[1], "-opt=dce")) {
     // print CFG
-    for(int i=0; i<functions.size(); i++)
-      functions[i]->print_CFG();
-    cout<<endl;
     for(int i=0; i<functions.size(); i++) {
       functions[i]->dce();
     }
