@@ -6,38 +6,6 @@
 set<int> br_target;
 bool main_next = 0;
 
-// type 1
-// 1 reg def + 2 use
-#define DEF_REG1_SIZE 8
-string def_reg1[] = {"add", "sub", "mul", "div", "mod", 
-                     "cmpeq", "cmple", "cmplt"};
-// type 2
-// 1 reg def + 1 use of the only op
-#define DEF_REG2_SIZE 2
-string def_reg2[] = {"neg", "load"};
-// type 3
-// 0 reg def + 2 use
-#define DEF_REG3_SIZE 1
-string def_reg3[] = {"store"};
-// type 4
-// 0 def + 1st use of two ops
-// need to check BB boundary
-#define DEF_REG4_SIZE 2
-string def_reg4[] = {"blbc", "blbs"};
-// type 5
-// 1 def + 1 use, define in 2nd operand position
-#define DEF_REG5_SIZE 1
-string def_reg5[] = {"move"};
-// type 6
-// 0 def + 1 use of the only op
-#define DEF_REG6_SIZE 2
-string def_reg6[] = {"write", "param"};
-// type 7, branches whose destination might be changed
-// br, blbs, blbc
-// type 8, ret, call, enter, entrypc, read, wrl, nop won't be deleted and depend on nothing
-#define BB_END_SIZE 5
-string bb_end[] = {"br", "blbc", "blbs", "ret", "call"};
-
 pair<OpType, int> get_1op(string instr) {
   int pos1, pos2, pos3;
   string op1str;
@@ -126,7 +94,7 @@ bool newfunc_reached() {
 
 // return 0 if reach the end of basic block
 // return 1 if there are instructions following
-bool Instr::populate(string temp, bool& main) {
+bool Instr::populate(string temp, bool& main, int& local_size) {
   int found;
   pair<OpType, int> t;
   bool instr_follow;
@@ -145,6 +113,14 @@ bool Instr::populate(string temp, bool& main) {
 
   // get intruction number
   num = instr_num(instr);
+
+  // check if it is enter
+  found = instr.find("enter");
+  if (found != string::npos) {
+    found = instr.rfind(' ');
+    local_size = atoi(instr.substr(found+1).c_str());
+    local_size = 0-local_size;
+  }
 
   // check if this is the last instr in the bb
   instr_follow = (br_target.find(num+1) == br_target.end());
@@ -213,7 +189,7 @@ bool Instr::populate(string temp, bool& main) {
 
 // return 0 if reach the end of the function
 // return 1 if there are other bb following
-bool BasicBlock::populate() {
+bool BasicBlock::populate(int& local_size) {
   string temp;
   bool ret=1;
   main = main_next;
@@ -229,7 +205,7 @@ bool BasicBlock::populate() {
   while(ret && !cin.eof()) {
     getline(cin, temp);
     instr.push_back(new Instr);
-    ret = instr.back()->populate(temp, main);
+    ret = instr.back()->populate(temp, main, local_size);
   }
 
   // update basic block number
@@ -294,11 +270,12 @@ BasicBlock* Function::get_bb(int num) {
 
 void Function::populate() {
   bool ret;
+  dead_var_offset.clear();
 
   // populate each basic block
   do {
     bb.push_back(new BasicBlock);
-    ret = bb.back()->populate();
+    ret = bb.back()->populate(local_size);
   } while(ret);
 
   // connect pointers

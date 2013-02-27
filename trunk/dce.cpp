@@ -121,7 +121,7 @@ void Function::compute_live() {
 }
 
 // retrun true if any dce happens
-bool BasicBlock::dce(Function* f) {
+bool BasicBlock::dce(Function* f, set<int>& dead_var_offset) {
   // live hold live C variables 
   set<int> live;
   // dead hold dead virtual registers
@@ -159,11 +159,10 @@ bool BasicBlock::dce(Function* f) {
       if ( (this_def.first == VAR && live.find(this_def.second) == live.end()) ||
            (this_def.first == REG && dead.find(this_def.second) != dead.end()) ){
 
-        cout<<"erasing: "<<(*it)->instr<<" ";
-        cout<<(this_def.first == VAR)<<" ";
-        cout<<(live.find(this_def.second) == live.end())<<" ";
-        cout<<(this_def.first == REG)<<" ";
-        cout<<(dead.find(this_def.second) != def.end())<<endl;
+        // update dead var offset
+        if (this_def.first == VAR && live.find(this_def.second) == live.end()) {
+          dead_var_offset.insert(this_def.first);
+        }
 
         // copy all it's virtual register into dead
         for(set<pair<OpType, int> >::iterator jt = (*it)->use.begin();
@@ -215,7 +214,6 @@ void Function::reconnect() {
       for(set<BasicBlock*>::iterator it=bb[i]->children_p.begin();
           it != bb[i]->children_p.end(); it++) {
         if (bb[i]->branch_target == (*it)->num) {
-          cout<<(*it)->num<<endl;
           need_to_reconnect = 0;
         }
       }
@@ -237,11 +235,22 @@ void Function::reconnect() {
         new_instr += t.str();
         new_instr += "]";
         bb[i]->instr.back()->instr = new_instr;
-        }
+      }
     }
   }
 
   return;
+}
+
+void Function::rename() {
+  local_size = local_size + dead_var_offset.size()*8;
+  // rename C registers of each instruction
+  for(int i=0; i<bb.size(); i++) {
+    for(list<Instr*>::iterator it = bb[i]->instr.begin();
+        it != bb[i]->instr.end(); it++) {
+     // TODO 
+    }
+  }
 }
 
 void Function::dce() {
@@ -253,17 +262,6 @@ void Function::dce() {
     // compute use and def for each bb
     for(int i=0; i<bb.size(); i++) {
       bb[i]->compute_defuse();
-
-      // print use, def
-      //cout<<"bb: "<<bb[i]->num<<"\n";
-      //cout<<"use size: "<<bb[i]->use.size()<<"\n\t";
-      //for(set<int>::iterator j=bb[i]->use.begin(); j!=bb[i]->use.end(); j++)
-      //  cout<<*j<<" ";
-      //cout<<endl;
-      //cout<<"def size: "<<bb[i]->def.size()<<"\n\t";
-      //for(set<int>::iterator j=bb[i]->def.begin(); j!=bb[i]->def.end(); j++)
-      //  cout<<*j<<" ";
-      //cout<<endl<<endl;;
     }
 
     // compute live var for each bb
@@ -283,7 +281,7 @@ void Function::dce() {
     // dce on each bb
     for(vector<BasicBlock*>::iterator i=bb.begin();
         i != bb.end(); i++) {
-      has_change |= (*i)->dce(this);
+      has_change |= (*i)->dce(this, dead_var_offset);
 
       // delete a bb if it is empty
       if ((*i)->instr.size() == 0) {
@@ -305,6 +303,9 @@ void Function::dce() {
   }
   // reconnect the CFG
   reconnect();
+
+  // change C variable indexing
+  rename();
 
   return;
 }
