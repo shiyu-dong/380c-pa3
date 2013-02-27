@@ -39,7 +39,7 @@ string def_reg6[] = {"write", "param"};
 string bb_end[] = {"br", "blbc", "blbs", "ret", "call"};
 
 
-pair<OpType, int> get_1op(string instr) {
+pair<OpType, int> get_1op(string instr, map<int, int>& ref_map) {
   int pos1, pos2, pos3;
   string op1str;
   pos2 = instr.find_last_of(" ");
@@ -58,13 +58,18 @@ pair<OpType, int> get_1op(string instr) {
   pos3 = op1str.find("_offset");
   if (pos1 != string::npos && pos2 == string::npos && pos3 == string::npos) {
     int reg_num = atoi(op1str.substr(pos1+1, op1str.length()-1).c_str());
+    if (ref_map.find(reg_num) == ref_map.end() && reg_num < 0) {
+      ref_map[reg_num] = 0;
+    }
+    if (reg_num < 0)
+      ref_map[reg_num] += 1;
     return make_pair(VAR, reg_num);
   }
 
   return make_pair(NONE, -1);
 }
 
-pair<OpType, int> get_2op(string instr) {
+pair<OpType, int> get_2op(string instr, map<int, int>& ref_map, bool update_map) {
   int pos1, pos2, pos3;
   string op1str;
   pos2 = instr.length();
@@ -90,6 +95,11 @@ pair<OpType, int> get_2op(string instr) {
   pos3 = op1str.find("_offset");
   if (pos1 != string::npos && pos2 == string::npos && pos3 == string::npos) {
     int reg_num = atoi(op1str.substr(pos1+1, op1str.length()-1).c_str());
+    if (ref_map.find(reg_num) == ref_map.end() && reg_num < 0 && update_map) {
+      ref_map[reg_num] = 0;
+    }
+    if (reg_num < 0 && update_map)
+      ref_map[reg_num] += 1;
     return make_pair(VAR, reg_num);
   }
 
@@ -127,7 +137,7 @@ bool newfunc_reached() {
 
 // return 0 if reach the end of basic block
 // return 1 if there are instructions following
-bool Instr::populate(string temp, bool& main, int& local_size) {
+bool Instr::populate(string temp, bool& main, int& local_size, map<int, int>& ref_map) {
   int found;
   pair<OpType, int> t;
   bool instr_follow;
@@ -164,8 +174,8 @@ bool Instr::populate(string temp, bool& main, int& local_size) {
     found = instr.find(def_reg1[i]);
     if (found != std::string::npos) {
       def.insert(make_pair(REG, num));
-      use.insert(get_1op(instr));
-      use.insert(get_2op(instr));
+      use.insert(get_1op(instr, ref_map));
+      use.insert(get_2op(instr, ref_map, 1));
       return instr_follow;
     }
   }
@@ -174,7 +184,7 @@ bool Instr::populate(string temp, bool& main, int& local_size) {
     found = instr.find(def_reg2[i]);
     if (found != std::string::npos) {
       def.insert(make_pair(REG, num));
-      use.insert(get_2op(instr));
+      use.insert(get_2op(instr, ref_map, 1));
       return instr_follow;
     }
   }
@@ -182,8 +192,8 @@ bool Instr::populate(string temp, bool& main, int& local_size) {
   for(int i=0; i<DEF_REG3_SIZE; i++) {
     found = instr.find(def_reg3[i]);
     if (found != std::string::npos) {
-      use.insert(get_1op(instr));
-      use.insert(get_2op(instr));
+      use.insert(get_1op(instr, ref_map));
+      use.insert(get_2op(instr, ref_map, 1));
       return instr_follow;
     }
   }
@@ -191,8 +201,8 @@ bool Instr::populate(string temp, bool& main, int& local_size) {
   for(int i=0; i<DEF_REG5_SIZE; i++) {
     found = instr.find(def_reg5[i]);
     if (found != std::string::npos) {
-      use.insert(get_1op(instr));
-      def.insert(get_2op(instr));
+      use.insert(get_1op(instr, ref_map));
+      def.insert(get_2op(instr, ref_map, 0));
       return instr_follow;
     }
   }
@@ -200,7 +210,7 @@ bool Instr::populate(string temp, bool& main, int& local_size) {
   for(int i=0; i<DEF_REG6_SIZE; i++) {
     found = instr.find(def_reg6[i]);
     if (found != std::string::npos) {
-      use.insert(get_2op(instr));
+      use.insert(get_2op(instr, ref_map, 1));
       return instr_follow;
     }
   }
@@ -208,7 +218,7 @@ bool Instr::populate(string temp, bool& main, int& local_size) {
   for(int i=0; i<DEF_REG4_SIZE; i++) {
     found = instr.find(def_reg4[i]);
     if (found != std::string::npos) {
-      use.insert(get_1op(instr));
+      use.insert(get_1op(instr, ref_map));
     }
   }
   // check end of bb
@@ -222,9 +232,10 @@ bool Instr::populate(string temp, bool& main, int& local_size) {
 
 // return 0 if reach the end of the function
 // return 1 if there are other bb following
-bool BasicBlock::populate(int& local_size) {
+bool BasicBlock::populate(int& local_size, map<int, int>& ref_map) {
   string temp;
   bool ret=1;
+  map<int, int> none;
   main = main_next;
   main_next = 0;
 
@@ -238,7 +249,7 @@ bool BasicBlock::populate(int& local_size) {
   while(ret && !cin.eof()) {
     getline(cin, temp);
     instr.push_back(new Instr);
-    ret = instr.back()->populate(temp, main, local_size);
+    ret = instr.back()->populate(temp, main, local_size, ref_map);
   }
 
   // update basic block number
@@ -261,7 +272,7 @@ bool BasicBlock::populate(int& local_size) {
   // br
   found = last_instr.find("br");
   if (found != string::npos) {
-    branch_target = get_2op(last_instr).second;
+    branch_target = get_2op(last_instr, none, 0).second;
     children.insert(branch_target);
     // check if reach the end of a function
     if (newfunc_reached())
@@ -272,7 +283,7 @@ bool BasicBlock::populate(int& local_size) {
   found = last_instr.find("blbc");
   found1 = last_instr.find("blbs");
   if (found != string::npos || found1 != string::npos) {
-    branch_target = get_2op(last_instr).second;
+    branch_target = get_2op(last_instr, none, 0).second;
     children.insert(branch_target);
     children.insert(last_instr_num+1);
     // check if reach the end of a function
@@ -304,12 +315,13 @@ BasicBlock* Function::get_bb(int num) {
 void Function::populate() {
   bool ret;
 
-  var_map.clear();
+  ref_map.clear();
+  dead_var_offset.clear();
 
   // populate each basic block
   do {
     bb.push_back(new BasicBlock);
-    ret = bb.back()->populate(local_size);
+    ret = bb.back()->populate(local_size, ref_map);
   } while(ret);
 
   // connect pointers

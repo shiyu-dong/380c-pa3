@@ -11,6 +11,7 @@
 using namespace std;
 
 //#define DEBUG_1
+#define DEBUG_0
 
 enum OpType {REG, VAR, NONE};
 extern set<int> br_target;
@@ -30,7 +31,7 @@ struct Instr {
   set<pair<OpType, int> > def;
   string instr;
 
-  bool populate(string, bool&, int&);
+  bool populate(string, bool&, int&, map<int, int>&);
 };
 
 struct BasicBlock {
@@ -49,19 +50,20 @@ struct BasicBlock {
   bool main;
 
   // CFG
-  bool populate(int&);
+  bool populate(int&, map<int, int>&);
 
   // DCE
   void compute_defuse();
-  bool dce(Function*);
+  bool dce(Function*, map<int, int>&, set<int>&);
   inline void add_instr_def(list<Instr*>::iterator);
   inline void add_instr_use(list<Instr*>::iterator);
 };
 
 struct Function {
   vector<BasicBlock*> bb;
-  map<int, int> var_map;
   int local_size;
+  map<int, int> ref_map;
+  set<int> dead_var_offset;
 
   BasicBlock* get_bb(int);
 
@@ -75,12 +77,12 @@ struct Function {
   bool compute_bb_live(int);
   void dce();
   void reconnect();
-  void rename_operand(string&, int&);
+  void rename_operand(string&);
   void rename();
   int next_instr_num(int);
 };
 
 
-pair<OpType, int> get_1op(string instr);
-pair<OpType, int> get_2op(string instr);
+pair<OpType, int> get_1op(string instr, map<int, int>&);
+pair<OpType, int> get_2op(string instr, map<int, int>&, bool);
 #endif
