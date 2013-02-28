@@ -1,0 +1,61 @@
+    instr 1: nop
+    instr 2: entrypc
+    instr 3: enter 0
+    instr 4: add dead1_base#32752 GP
+    instr 5: store 0 (4)
+    instr 6: add dead2_base#32744 GP
+    instr 7: store 0 (6)
+    instr 8: add live1_base#32736 GP
+    instr 9: store 0 (8)
+    instr 10: add live2_base#32728 GP
+    instr 11: store 0 (10)
+    instr 12: add deadlive_base#32720 GP
+    instr 13: store 0 (12)
+    instr 14: add live1_base#32736 GP
+    instr 15: load (14)
+    instr 16: cmplt (15) 10
+    instr 17: blbc (16) [38]
+    instr 18: add live1_base#32736 GP
+    instr 19: load (18)
+    instr 20: mul (19) 2
+    instr 21: add dead1_base#32752 GP
+    instr 22: store (20) (21)
+    instr 23: add live1_base#32736 GP
+    instr 24: load (23)
+    instr 25: sub (24) 1
+    instr 26: add dead2_base#32744 GP
+    instr 27: store (25) (26)
+    instr 28: add live1_base#32736 GP
+    instr 29: load (28)
+    instr 30: add (29) 1
+    instr 31: add live1_base#32736 GP
+    instr 32: store (30) (31)
+    instr 33: add live1_base#32736 GP
+    instr 34: load (33)
+    instr 35: add n_base#32760 GP
+    instr 36: store (34) (35)
+    instr 37: br [14]
+    instr 38: add live2_base#32728 GP
+    instr 39: load (38)
+    instr 40: cmpeq (39) 0
+    instr 41: blbc (40) [45]
+    instr 42: add dead1_base#32752 GP
+    instr 43: store 5 (42)
+    instr 44: br [47]
+    instr 45: add dead2_base#32744 GP
+    instr 46: store 10 (45)
+    instr 47: add deadlive_base#32720 GP
+    instr 48: store 1 (47)
+    instr 49: add deadlive_base#32720 GP
+    instr 50: load (49)
+    instr 51: add n_base#32760 GP
+    instr 52: store (50) (51)
+    instr 53: add deadlive_base#32720 GP
+    instr 54: load (53)
+    instr 55: mul (54) 2
+    instr 56: add deadlive_base#32720 GP
+    instr 57: store (55) (56)
+    instr 58: add deadlive_base#32720 GP
+    instr 59: store 3 (58)
+    instr 60: ret 0
+    instr 61: nop

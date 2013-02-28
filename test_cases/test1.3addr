@@ -1,0 +1,32 @@
+    instr 1: nop
+    instr 2: entrypc
+    instr 3: enter 40
+    instr 4: move 0 dead1#-8
+    instr 5: move 0 dead2#-16
+    instr 6: move 0 live1#-24
+    instr 7: move 0 live2#-32
+    instr 8: move 0 deadlive#-40
+    instr 9: cmplt live1#-24 10
+    instr 10: blbc (9) [20]
+    instr 11: mul live1#-24 2
+    instr 12: move (11) dead1#-8
+    instr 13: sub live1#-24 1
+    instr 14: move (13) dead2#-16
+    instr 15: add live1#-24 1
+    instr 16: move (15) live1#-24
+    instr 17: add n_base#32760 GP
+    instr 18: store live1#-24 (17)
+    instr 19: br [9]
+    instr 20: cmpeq live2#-32 0
+    instr 21: blbc (20) [24]
+    instr 22: move 5 dead1#-8
+    instr 23: br [25]
+    instr 24: move 10 dead2#-16
+    instr 25: move 1 deadlive#-40
+    instr 26: add n_base#32760 GP
+    instr 27: store deadlive#-40 (26)
+    instr 28: mul deadlive#-40 2
+    instr 29: move (28) deadlive#-40
+    instr 30: move 3 deadlive#-40
+    instr 31: ret 0
+    instr 32: nop
